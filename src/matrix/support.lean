@@ -30,6 +30,10 @@ lemma curry_finsupp_apply [add_comm_monoid α] (M : matrix n m α) (i j) :
   M.finsupp.curry i j = M i j :=
 by rw [finsupp.curry_apply, finsupp_apply]
 
+lemma mem_support_curry_finsupp [add_comm_monoid α] (M : matrix n m α) (i j) :
+  j ∈ (M.finsupp.curry i).support ↔ M i j ≠ 0 :=
+by rw [finsupp.mem_support_iff, curry_finsupp_apply]
+
 namespace finsupp
 
 variables [add_comm_monoid α] {M : matrix n m α}

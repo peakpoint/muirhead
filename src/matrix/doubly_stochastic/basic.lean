@@ -10,7 +10,7 @@ open_locale big_operators matrix
 
 namespace matrix
 
-variables {n α : Type} [fintype n] [ordered_add_comm_monoid α] [has_one α]
+variables {n α : Type*} [fintype n] [ordered_add_comm_monoid α] [has_one α]
 
 structure doubly_stochastic (M : matrix n n α) : Prop :=
   (nonneg : ∀ i j, 0 ≤ M i j)
