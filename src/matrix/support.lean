@@ -75,6 +75,9 @@ lemma mem_support_iff' (a : n × m) : a ∈ M.support ↔ M a.1 a.2 ≠ 0 :=
 lemma mem_support_iff (i j) : (i, j) ∈ M.support ↔ M i j ≠ 0 :=
   finsupp.mem_support_iff
 
+lemma not_mem_support_iff (i j) : (i, j) ∉ M.support ↔ M i j = 0 :=
+  finsupp.not_mem_support_iff
+
 lemma mem_support_transpose (i j) : (i, j) ∈ Mᵀ.support ↔ M j i ≠ 0 :=
   mem_support_iff _ _
 

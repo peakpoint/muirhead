@@ -6,9 +6,11 @@ Authors: Tian Chen
 
 import matrix.support
 
-open_locale big_operators matrix
+open_locale big_operators matrix classical
 
 namespace matrix
+
+section
 
 variables {n α : Type*} [fintype n] [ordered_add_comm_monoid α] [has_one α]
 
@@ -16,6 +18,25 @@ structure doubly_stochastic (M : matrix n n α) : Prop :=
   (nonneg : ∀ i j, 0 ≤ M i j)
   (row : ∀ i, ∑ j, M i j = 1)
   (col : ∀ j, ∑ i, M i j = 1)
+
+lemma doubly_stochastic_iff (M : matrix n n α) :
+  M.doubly_stochastic ↔
+    (∀ i j, 0 ≤ M i j) ∧ (∀ i, ∑ j, M i j = 1) ∧ (∀ j, ∑ i, M i j = 1) :=
+⟨λ h, ⟨h.nonneg, h.row, h.col⟩, λ ⟨h₁, h₂, h₃⟩, ⟨h₁, h₂, h₃⟩⟩
+
+lemma equiv.doubly_stochastic [decidable_eq n] (σ : equiv.perm n) (β : Type*)
+  [ordered_add_comm_monoid β] [has_one β] [zero_le_one_class β] :
+  (σ.to_pequiv.to_matrix : matrix n n β).doubly_stochastic :=
+⟨λ i j, begin
+  rw [pequiv.equiv_to_pequiv_to_matrix, one_apply],
+  split_ifs,
+  exact zero_le_one,
+  exact le_rfl
+end,
+λ i, by simp_rw [pequiv.equiv_to_pequiv_to_matrix, one_apply];
+  rw [finset.sum_ite_eq, if_pos]; exact finset.mem_univ _,
+λ j, by simp_rw [pequiv.equiv_to_pequiv_to_matrix, one_apply, ← equiv.eq_symm_apply];
+  rw [finset.sum_ite_eq', if_pos]; exact finset.mem_univ _⟩
 
 namespace doubly_stochastic
 
@@ -59,7 +80,7 @@ calc fintype.card n = ∑ i, 1 :
 ... ≤ ∑ i, (M.finsupp.curry i).support.card :
   finset.sum_le_sum $ λ i _, hM.card_finsupp_row_pos _
 ... = M.support.card :
-  M.support_card_eq_sum_row.symm
+  support_card_eq_sum_row.symm
 
 lemma card_support_finsupp_eq_one (hM : M.doubly_stochastic)
   (h : M.support.card = fintype.card n) (i : n) :
@@ -74,7 +95,7 @@ begin
     fintype.card_eq_sum_ones
   ... < ∑ i, (M.finsupp.curry i).support.card :
     finset.sum_lt_sum (λ i _, hM.card_finsupp_row_pos i) ⟨i, finset.mem_univ _, h'⟩
-  ... = M.support.card : M.support_card_eq_sum_row.symm
+  ... = M.support.card : support_card_eq_sum_row.symm
 end
 
 lemma card_support_finsupp_col_eq_one (hM : M.doubly_stochastic)
@@ -105,22 +126,9 @@ begin
   rw [h₁.1.1, h₂.1.1],
 end
 
-lemma _root_.equiv.doubly_stochastic [zero_le_one_class α] [decidable_eq n] (σ : equiv.perm n) :
-  (σ.to_pequiv.to_matrix : matrix n n α).doubly_stochastic :=
-⟨λ i j, begin
-  rw [pequiv.equiv_to_pequiv_to_matrix, one_apply],
-  split_ifs,
-  exact zero_le_one,
-  exact le_rfl
-end,
-λ i, by simp_rw [pequiv.equiv_to_pequiv_to_matrix, one_apply];
-  rw [finset.sum_ite_eq, if_pos]; exact finset.mem_univ _,
-λ j, by simp_rw [pequiv.equiv_to_pequiv_to_matrix, one_apply, ← equiv.eq_symm_apply];
-  rw [finset.sum_ite_eq', if_pos]; exact finset.mem_univ _⟩
-
 /-- An `n` by `n` matrix is doubly stochastic and has exactly `n` non-zero entries
   iff it's a permutation matrix -/
-lemma card_eq_card_support_iff [decidable_eq n] [zero_le_one_class α] :
+lemma card_eq_card_support_iff [zero_le_one_class α] :
   M.doubly_stochastic ∧ M.support.card = fintype.card n ↔
   ∃ σ : equiv.perm n, M = σ.to_pequiv.to_matrix :=
 begin
@@ -152,8 +160,34 @@ begin
           hi, finset.mem_singleton] at hMij,
         exact h' hMij.symm } } },
   { rintro ⟨σ, rfl⟩,
-    exact ⟨σ.doubly_stochastic, σ.card_support_to_matrix⟩ }
+    exact ⟨σ.doubly_stochastic α, σ.card_support_to_matrix⟩ }
 end
+
+end doubly_stochastic
+
+end
+
+namespace doubly_stochastic
+
+variables {n α : Type*} [fintype n] [ordered_cancel_add_comm_monoid α] [has_one α]
+  {M : matrix n n α}
+
+lemma row_eq_zero_of_ne (hM : M.doubly_stochastic) {i j : n} (h : M i j = 1) :
+  ∀ j', j ≠ j' → M i j' = 0 :=
+begin
+  intros j' hj',
+  have := hM.row i,
+  rw [← finset.add_sum_erase _ _ (finset.mem_univ j), h, add_right_eq_self,
+    finset.sum_eq_zero_iff_of_nonneg] at this,
+  apply this,
+  exact finset.mem_erase_of_ne_of_mem hj'.symm (finset.mem_univ _),
+  { intros,
+    apply hM.nonneg }
+end
+
+lemma col_eq_zero_of_ne (hM : M.doubly_stochastic) {i j : n} (h : M i j = 1) :
+  ∀ i', i ≠ i' → M i' j = 0 :=
+hM.transpose.row_eq_zero_of_ne h
 
 end doubly_stochastic
 
