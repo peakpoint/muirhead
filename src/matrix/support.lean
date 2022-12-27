@@ -34,6 +34,10 @@ lemma mem_support_curry_finsupp [add_comm_monoid α] (M : matrix n m α) (i j) :
   j ∈ (M.finsupp.curry i).support ↔ M i j ≠ 0 :=
 by rw [finsupp.mem_support_iff, curry_finsupp_apply]
 
+lemma finsupp_smul [add_monoid α] {R : Type*} [smul_zero_class R α] (M : matrix n m α) (x : R) :
+  (x • M).finsupp = x • M.finsupp :=
+by ext ⟨i, j⟩; refl
+
 namespace finsupp
 
 variables [add_comm_monoid α] {M : matrix n m α}
@@ -59,7 +63,7 @@ def support [has_zero α] (M : matrix n m α) : finset (n × m) := M.finsupp.sup
 
 section support
 
-variable (M : matrix n m α)
+variable {M : matrix n m α}
 
 section
 
@@ -72,7 +76,7 @@ lemma mem_support_iff (i j) : (i, j) ∈ M.support ↔ M i j ≠ 0 :=
   finsupp.mem_support_iff
 
 lemma mem_support_transpose (i j) : (i, j) ∈ Mᵀ.support ↔ M j i ≠ 0 :=
-  mem_support_iff _ _ _
+  mem_support_iff _ _
 
 lemma support_transpose' :
   M.support.map (equiv.prod_comm n m).to_embedding = Mᵀ.support :=
@@ -96,6 +100,11 @@ end
 end
 
 variables [add_comm_monoid α]
+
+lemma support_smul_eq {R : Type*} [semiring R] [module R α] [no_zero_smul_divisors R α]
+  {x : R} (hx : x ≠ 0) :
+  (x • M).support = M.support :=
+by rw [support, finsupp_smul]; exact finsupp.support_smul_eq hx
 
 lemma finsupp_eq_sum_row :
   M.finsupp = ∑ i, (M.finsupp.curry i).map_domain (prod.mk i) :=
