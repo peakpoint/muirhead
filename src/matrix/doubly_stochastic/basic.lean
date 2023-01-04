@@ -52,6 +52,26 @@ calc M i j = ∑ j in {j}, M i j :
 lemma transpose (hM : M.doubly_stochastic) : Mᵀ.doubly_stochastic :=
   ⟨λ i j, hM.nonneg j i, hM.col, hM.row⟩
 
+lemma of_transpose_eq_self (hM : Mᵀ = M) (h₁ : ∀ i j, 0 ≤ M i j) (h₂ : ∀ i, ∑ j, M i j = 1) :
+  M.doubly_stochastic :=
+begin
+  refine ⟨h₁, h₂, _⟩,
+  rw ← hM,
+  exact h₂
+end
+
+lemma reindex (hM : M.doubly_stochastic) {m : Type*} [fintype m] (e₁ e₂ : n ≃ m) :
+  (reindex e₁ e₂ M).doubly_stochastic :=
+⟨λ i j, hM.nonneg _ _,
+  λ i, by simp_rw [reindex_apply, submatrix_apply];
+    rw [← hM.row (e₁.symm i)];
+    apply fintype.sum_equiv e₂.symm;
+    intro; refl,
+  λ j, by simp_rw [reindex_apply, submatrix_apply];
+    rw [← hM.col (e₂.symm j)];
+    apply fintype.sum_equiv e₁.symm;
+    intro; refl⟩
+
 variables [ne_zero (1 : α)]
 
 lemma apply_curry_finsupp_nonzero (hM : M.doubly_stochastic) (i : n) :
@@ -169,7 +189,11 @@ end
 
 namespace doubly_stochastic
 
-variables {n α : Type*} [fintype n] [ordered_cancel_add_comm_monoid α] [has_one α]
+variables {n α : Type*} [fintype n]
+
+section
+
+variables [ordered_cancel_add_comm_monoid α] [has_one α]
   {M : matrix n n α}
 
 lemma row_eq_zero_of_ne (hM : M.doubly_stochastic) {i j : n} (h : M i j = 1) :
@@ -188,6 +212,28 @@ end
 lemma col_eq_zero_of_ne (hM : M.doubly_stochastic) {i j : n} (h : M i j = 1) :
   ∀ i', i ≠ i' → M i' j = 0 :=
 hM.transpose.row_eq_zero_of_ne h
+
+end
+
+variables [ordered_semiring α] {M N : matrix n n α}
+
+lemma mul (hM : M.doubly_stochastic) (hN : N.doubly_stochastic) :
+  (M ⬝ N).doubly_stochastic :=
+begin
+  split,
+  { intros i j,
+    apply finset.sum_nonneg,
+    intros k _,
+    exact mul_nonneg (hM.nonneg _ _) (hN.nonneg _ _) },
+  all_goals {
+    intro,
+    simp_rw [mul_apply],
+    rw [finset.sum_comm] },
+  { simp_rw [← finset.mul_sum, hN.row, mul_one],
+    exact hM.row _ },
+  { simp_rw [← finset.sum_mul, hM.col, one_mul],
+    exact hN.col _ }
+end
 
 end doubly_stochastic
 

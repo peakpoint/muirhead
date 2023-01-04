@@ -13,5 +13,10 @@ Every doubly stochastic matrix is in the convex hull of the permutation matrices
 ## TODO:
 
 * prove some variations (reverse direction)?
-* make `ineq/majorize.lean` and define majorization
 * make `ineq/muirhead.lean`
+
+## References/Helpful Notes
+
+* <https://www.math.hkust.edu.hk/excalibur/v11_n1_20161130.pdf>
+
+* <https://web.archive.org/web/20170706160002/http://imomath.com/index.php?options=596&lmm=0>
