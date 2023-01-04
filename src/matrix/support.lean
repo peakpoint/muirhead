@@ -151,19 +151,26 @@ begin
   { intros, apply this, assumption }
 end
 
-lemma _root_.equiv.card_support_to_matrix
-  [has_one α] [ne_zero (1 : α)] [decidable_eq n] (σ : equiv.perm n) :
-  (σ.to_pequiv.to_matrix : matrix n n α).support.card = fintype.card n :=
+variables [has_one α] [ne_zero (1 : α)] [decidable_eq m] [decidable_eq n]
+
+lemma _root_.equiv.card_support_to_matrix (σ : m ≃ n) :
+  (σ.to_pequiv.to_matrix : matrix m n α).support.card = fintype.card m :=
 begin
   suffices h : σ.to_pequiv.to_matrix.support = finset.univ.image (λ i, (i, σ i)),
   { rw [h, finset.card_image_of_injective, fintype.card],
     intros _ _ hp,
     exact (prod.mk.inj hp).1 },
   ext ⟨i, j⟩,
-  rw [mem_support_iff, pequiv.equiv_to_pequiv_to_matrix, finset.mem_image,
-    one_apply, ne.ite_ne_right_iff (one_ne_zero' α)],
+  rw [mem_support_iff, pequiv.to_matrix, equiv.to_pequiv_apply, finset.mem_image],
+  simp_rw [option.mem_some_iff],
+  rw [ne.ite_ne_right_iff (one_ne_zero' α)],
   simp_rw [prod.mk.inj_iff, finset.mem_univ, exists_true_left, exists_eq_left]
 end
+
+lemma _root_.equiv.card_support_to_matrix'
+  [has_one α] [ne_zero (1 : α)] [decidable_eq n] (σ : m ≃ n) :
+  (σ.to_pequiv.to_matrix : matrix m n α).support.card = fintype.card n :=
+fintype.card_congr σ ▸ equiv.card_support_to_matrix σ
 
 end support
 

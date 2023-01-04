@@ -16,10 +16,10 @@ noncomputable theory
 
 namespace matrix.doubly_stochastic
 
-variables {n α : Type*} [fintype n] [linear_ordered_field α] {M : matrix n n α}
+variables {m n α : Type*} [fintype m] [fintype n] [linear_ordered_field α] {M : matrix m n α}
 
 /-- Inequality used in the application of Hall. -/
-lemma hall (hM : M.doubly_stochastic) (s : finset n) :
+lemma hall (hM : M.doubly_stochastic) (s : finset m) :
   s.card ≤ (s.bUnion (λ i, (M.finsupp.curry i).support)).card :=
 let t := s.bUnion (λ i, (M.finsupp.curry i).support) in
 nat.cast_le.mp $
@@ -45,19 +45,20 @@ nat.cast_le.mp $
 
 /-- **Birkhoff's theorem** -/
 theorem mem_convex_hull (hM : M.doubly_stochastic) :
-  M ∈ convex_hull α ((pequiv.to_matrix ∘ equiv.to_pequiv) '' set.univ : set (matrix n n α)) :=
+  M ∈ convex_hull α ((pequiv.to_matrix ∘ equiv.to_pequiv) '' set.univ : set (matrix m n α)) :=
 begin
-  cases (univ : finset n).eq_empty_or_nonempty with hn hn,
-  { haveI := univ_eq_empty_iff.mp hn,
+  let e := fintype.equiv_of_card_eq hM.card_eq_card,
+  cases (univ : finset m).eq_empty_or_nonempty with hm hm,
+  { haveI := univ_eq_empty_iff.mp hm,
     apply subset_convex_hull,
-    exact ⟨equiv.refl n, set.mem_univ _, subsingleton.elim _ _⟩ },
+    exact ⟨e, set.mem_univ _, subsingleton.elim _ _⟩ },
   induction hN : M.support.card using nat.strong_induction_on
     with N h_ind generalizing M,
   obtain ⟨c, hc_inj, hc⟩ := (all_card_le_bUnion_card_iff_exists_injective' _).1 hM.hall,
-  let σ : equiv.perm n := equiv.of_bijective c (finite.injective_iff_bijective.mp hc_inj),
+  let σ : m ≃ n := equiv.of_bijective c ⟨hc_inj, hc_inj.surjective_of_fintype e⟩,
   have hσ : ∀ i, M i (σ i) ≠ 0 :=
     λ i, (M.mem_support_curry_finsupp _ _).mp (hc i),
-  let x := (univ.image $ λ i, M i (c i)).min' (hn.image _),
+  let x := (univ.image $ λ i, M i (c i)).min' (hm.image _),
   obtain ⟨a, _, ha : M a (σ a) = x⟩ := mem_image.mp (min'_mem _ _),
   have hx_min : ∀ i, x ≤ M i (σ i) :=
     λ i, min'_le _ _ (mem_image.mpr ⟨i, mem_univ _, rfl⟩),
@@ -69,7 +70,8 @@ begin
     use [σ, set.mem_univ _],
     show σ.to_pequiv.to_matrix = M,
     ext i j,
-    rw [pequiv.equiv_to_pequiv_to_matrix, one_apply],
+    rw [pequiv.to_matrix, equiv.to_pequiv_apply],
+    simp_rw [option.mem_some_iff],
     have hi' : M i (σ i) = 1 := le_antisymm (hM.le_one i _) (h1x.symm ▸ hx_min i),
     split_ifs with hij hij,
     { rw [← hij, hi'] },
@@ -106,14 +108,18 @@ begin
       refine ⟨_, hσ _, _⟩,
       { apply sub_eq_zero_of_eq,
         show _ = x • _,
-        rw [pequiv.equiv_to_pequiv_to_matrix, one_apply_eq, smul_eq_mul, mul_one, ha] },
+        rw [pequiv.to_matrix, equiv.to_pequiv_apply],
+        simp_rw [option.mem_some_iff],
+        rw [if_pos rfl, smul_eq_mul, mul_one, ha] },
       { rintro ⟨i, j⟩ hij,
         rw mem_support_iff at hij ⊢,
         by_cases hj : j = σ i,
         { rw hj,
           apply hσ },
         { change M i j - x • _ ≠ 0 at hij,
-          rw [pequiv.equiv_to_pequiv_to_matrix, one_apply_ne' hj, smul_zero, sub_zero] at hij,
+          rw [pequiv.to_matrix, equiv.to_pequiv_apply] at hij,
+          simp_rw [option.mem_some_iff] at hij,
+          rw [if_neg (ne.symm hj), smul_zero, sub_zero] at hij,
           exact hij } } },
     { rw doubly_stochastic_iff,
       split,
@@ -121,7 +127,9 @@ begin
         apply mul_nonneg (inv_nonneg_of_nonneg h1x_nonneg),
         apply sub_nonneg_of_le,
         show x • _ ≤ _,
-        rw [pequiv.equiv_to_pequiv_to_matrix, one_apply, smul_eq_mul, mul_boole],
+        rw [pequiv.to_matrix, equiv.to_pequiv_apply],
+        simp_rw [option.mem_some_iff],
+        rw [smul_eq_mul, mul_boole],
         split_ifs with hj hj,
         { rw ← hj,
           apply hx_min },

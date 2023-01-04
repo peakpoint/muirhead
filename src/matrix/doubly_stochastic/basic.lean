@@ -12,37 +12,47 @@ namespace matrix
 
 section
 
-variables {n α : Type*} [fintype n] [ordered_add_comm_monoid α] [has_one α]
+variables {m n α : Type*} [fintype m] [fintype n] [ordered_add_comm_monoid α] [has_one α]
 
-structure doubly_stochastic (M : matrix n n α) : Prop :=
+structure doubly_stochastic (M : matrix m n α) : Prop :=
   (nonneg : ∀ i j, 0 ≤ M i j)
   (row : ∀ i, ∑ j, M i j = 1)
   (col : ∀ j, ∑ i, M i j = 1)
 
-lemma doubly_stochastic_iff (M : matrix n n α) :
+lemma doubly_stochastic_iff (M : matrix m n α) :
   M.doubly_stochastic ↔
     (∀ i j, 0 ≤ M i j) ∧ (∀ i, ∑ j, M i j = 1) ∧ (∀ j, ∑ i, M i j = 1) :=
 ⟨λ h, ⟨h.nonneg, h.row, h.col⟩, λ ⟨h₁, h₂, h₃⟩, ⟨h₁, h₂, h₃⟩⟩
 
-lemma equiv.doubly_stochastic [decidable_eq n] (σ : equiv.perm n) (β : Type*)
+lemma equiv.doubly_stochastic [decidable_eq m] [decidable_eq n] (σ : m ≃ n) (β : Type*)
   [ordered_add_comm_monoid β] [has_one β] [zero_le_one_class β] :
-  (σ.to_pequiv.to_matrix : matrix n n β).doubly_stochastic :=
+  (σ.to_pequiv.to_matrix : matrix m n β).doubly_stochastic :=
 ⟨λ i j, begin
-  rw [pequiv.equiv_to_pequiv_to_matrix, one_apply],
+  rw pequiv.to_matrix,
   split_ifs,
   exact zero_le_one,
   exact le_rfl
 end,
-λ i, by simp_rw [pequiv.equiv_to_pequiv_to_matrix, one_apply];
+λ i, by simp_rw [pequiv.to_matrix, equiv.to_pequiv_apply, option.mem_some_iff];
   rw [finset.sum_ite_eq, if_pos]; exact finset.mem_univ _,
-λ j, by simp_rw [pequiv.equiv_to_pequiv_to_matrix, one_apply, ← equiv.eq_symm_apply];
+λ j, by simp_rw [pequiv.to_matrix, equiv.to_pequiv_apply,
+    option.mem_some_iff, ← equiv.eq_symm_apply];
   rw [finset.sum_ite_eq', if_pos]; exact finset.mem_univ _⟩
 
 namespace doubly_stochastic
 
-variables {M : matrix n n α}
+lemma of_transpose_eq_self {M : matrix n n α} (hM : Mᵀ = M)
+  (h₁ : ∀ i j, 0 ≤ M i j) (h₂ : ∀ i, ∑ j, M i j = 1) :
+  M.doubly_stochastic :=
+begin
+  refine ⟨h₁, h₂, _⟩,
+  rw ← hM,
+  exact h₂
+end
 
-lemma le_one (hM : M.doubly_stochastic) (i j : n) : M i j ≤ 1 :=
+variables {M : matrix m n α}
+
+lemma le_one (hM : M.doubly_stochastic) (i j) : M i j ≤ 1 :=
 calc M i j = ∑ j in {j}, M i j :
   finset.sum_singleton.symm
 ... ≤ ∑ j, M i j :
@@ -52,15 +62,8 @@ calc M i j = ∑ j in {j}, M i j :
 lemma transpose (hM : M.doubly_stochastic) : Mᵀ.doubly_stochastic :=
   ⟨λ i j, hM.nonneg j i, hM.col, hM.row⟩
 
-lemma of_transpose_eq_self (hM : Mᵀ = M) (h₁ : ∀ i j, 0 ≤ M i j) (h₂ : ∀ i, ∑ j, M i j = 1) :
-  M.doubly_stochastic :=
-begin
-  refine ⟨h₁, h₂, _⟩,
-  rw ← hM,
-  exact h₂
-end
-
-lemma reindex (hM : M.doubly_stochastic) {m : Type*} [fintype m] (e₁ e₂ : n ≃ m) :
+lemma reindex (hM : M.doubly_stochastic) {m' n' : Type*} [fintype m'] [fintype n']
+  (e₁ : m ≃ m') (e₂ : n ≃ n') :
   (reindex e₁ e₂ M).doubly_stochastic :=
 ⟨λ i j, hM.nonneg _ _,
   λ i, by simp_rw [reindex_apply, submatrix_apply];
@@ -74,7 +77,7 @@ lemma reindex (hM : M.doubly_stochastic) {m : Type*} [fintype m] (e₁ e₂ : n 
 
 variables [ne_zero (1 : α)]
 
-lemma apply_curry_finsupp_nonzero (hM : M.doubly_stochastic) (i : n) :
+lemma apply_curry_finsupp_nonzero (hM : M.doubly_stochastic) (i : m) :
   M.finsupp.curry i ≠ 0 :=
 begin
   intros h,
@@ -86,7 +89,7 @@ begin
   rw [← finsupp.curry_apply, h, finsupp.zero_apply]
 end
 
-lemma card_finsupp_row_pos (hM : M.doubly_stochastic) (i : n) :
+lemma card_finsupp_row_pos (hM : M.doubly_stochastic) (i : m) :
   0 < (M.finsupp.curry i).support.card :=
 begin
   rw [finset.card_pos, finsupp.support_nonempty_iff],
@@ -94,8 +97,8 @@ begin
 end
 
 lemma card_univ_le_card_support (hM : M.doubly_stochastic) :
-  fintype.card n ≤ M.support.card :=
-calc fintype.card n = ∑ i, 1 :
+  fintype.card m ≤ M.support.card :=
+calc fintype.card m = ∑ i, 1 :
   fintype.card_eq_sum_ones
 ... ≤ ∑ i, (M.finsupp.curry i).support.card :
   finset.sum_le_sum $ λ i _, hM.card_finsupp_row_pos _
@@ -103,14 +106,14 @@ calc fintype.card n = ∑ i, 1 :
   support_card_eq_sum_row.symm
 
 lemma card_support_finsupp_eq_one (hM : M.doubly_stochastic)
-  (h : M.support.card = fintype.card n) (i : n) :
+  (h : M.support.card = fintype.card m) (i : m) :
   (M.finsupp.curry i).support.card = 1 :=
 begin
   symmetry,
   by_contra h₁,
   have h' := lt_of_le_of_ne (nat.one_le_of_lt (hM.card_finsupp_row_pos i)) h₁,
   apply h.symm.not_lt,
-  calc fintype.card n
+  calc fintype.card m
       = ∑ i, 1 :
     fintype.card_eq_sum_ones
   ... < ∑ i, (M.finsupp.curry i).support.card :
@@ -120,16 +123,17 @@ end
 
 lemma card_support_finsupp_col_eq_one (hM : M.doubly_stochastic)
   (h : M.support.card = fintype.card n) (j : n) :
-  ((M.finsupp.equiv_map_domain (equiv.prod_comm n n)).curry j).support.card = 1 :=
+  ((M.finsupp.equiv_map_domain (equiv.prod_comm m n)).curry j).support.card = 1 :=
 by rw [finsupp.transpose', hM.transpose.card_support_finsupp_eq_one];
   rw [card_support_transpose, h]
 
 lemma support_curry_inj (hM : M.doubly_stochastic)
-  (hn : M.support.card = fintype.card n) (i₁ i₂ : n)
+  (hm : M.support.card = fintype.card m)
+  (hn : M.support.card = fintype.card n) (i₁ i₂)
   (h : (M.finsupp.curry i₁).support = (M.finsupp.curry i₂).support) : i₁ = i₂ :=
 begin
-  obtain ⟨j₁, h₁⟩ := finsupp.card_support_eq_one.mp (hM.card_support_finsupp_eq_one hn i₁),
-  obtain ⟨j₂, h₂⟩ := finsupp.card_support_eq_one.mp (hM.card_support_finsupp_eq_one hn i₂),
+  obtain ⟨j₁, h₁⟩ := finsupp.card_support_eq_one.mp (hM.card_support_finsupp_eq_one hm i₁),
+  obtain ⟨j₂, h₂⟩ := finsupp.card_support_eq_one.mp (hM.card_support_finsupp_eq_one hm i₂),
   rw [finsupp.support_eq_singleton.mpr h₁, finsupp.support_eq_singleton.mpr h₂,
     finset.singleton_inj] at h,
   rw h at *,
@@ -149,23 +153,25 @@ end
 /-- An `n` by `n` matrix is doubly stochastic and has exactly `n` non-zero entries
   iff it's a permutation matrix -/
 lemma card_eq_card_support_iff [zero_le_one_class α] :
-  M.doubly_stochastic ∧ M.support.card = fintype.card n ↔
-  ∃ σ : equiv.perm n, M = σ.to_pequiv.to_matrix :=
+  M.doubly_stochastic ∧ M.support.card = fintype.card m ∧ M.support.card = fintype.card n ↔
+  ∃ σ : m ≃ n, M = σ.to_pequiv.to_matrix :=
 begin
   split,
-  { rintro ⟨hM, hn⟩,
-    have h := λ i, finsupp.card_support_eq_one.mp (hM.card_support_finsupp_eq_one hn i),
+  { rintro ⟨hM, hm, hn⟩,
+    have h := λ i, finsupp.card_support_eq_one.mp (hM.card_support_finsupp_eq_one hm i),
     refine ⟨equiv.of_bijective (λ i, classical.some $ h i) _, _⟩,
-    { rw ← finite.injective_iff_bijective,
+    { suffices : function.injective _,
+      { exact ⟨this, this.surjective_of_fintype (fintype.equiv_of_card_eq (hm.symm.trans hn))⟩ },
       intros i₁ i₂ hi,
-      apply hM.support_curry_inj hn,
+      apply hM.support_curry_inj hm hn,
       have hi₁ := classical.some_spec (h i₁),
       have hi₂ := classical.some_spec (h i₂),
       rw ← finsupp.support_eq_singleton at hi₁ hi₂,
       rw [hi₁, hi₂, show classical.some _ = _, from hi] },
     { ext i j,
       have hi := classical.some_spec (h i),
-      rw [pequiv.equiv_to_pequiv_to_matrix, equiv.of_bijective_apply, one_apply],
+      rw [pequiv.to_matrix, equiv.to_pequiv_apply],
+      simp_rw [option.mem_some_iff],
       split_ifs with h' h',
       { rw [← h', ← hM.row i],
         calc  M i (classical.some (h i))
@@ -180,7 +186,7 @@ begin
           hi, finset.mem_singleton] at hMij,
         exact h' hMij.symm } } },
   { rintro ⟨σ, rfl⟩,
-    exact ⟨σ.doubly_stochastic α, σ.card_support_to_matrix⟩ }
+    exact ⟨σ.doubly_stochastic α, σ.card_support_to_matrix, σ.card_support_to_matrix'⟩ }
 end
 
 end doubly_stochastic
@@ -189,14 +195,24 @@ end
 
 namespace doubly_stochastic
 
-variables {n α : Type*} [fintype n]
+variables {m n α : Type*} [fintype m] [fintype n]
+
+lemma card_eq_card [ordered_semiring α] [char_zero α]
+  {M : matrix m n α} (hM : M.doubly_stochastic) :
+  fintype.card m = fintype.card n :=
+nat.cast_inj.1 $
+calc (finset.univ.card : α)
+    = ∑ i : m, 1 : by rw [finset.sum_const, nsmul_one]
+... = ∑ i, (∑ j, M i j) : by simp_rw [hM.row]
+... = ∑ j : n, 1 : by rw [finset.sum_comm]; simp_rw [hM.col]
+... = finset.univ.card : by rw [finset.sum_const, nsmul_one]
 
 section
 
 variables [ordered_cancel_add_comm_monoid α] [has_one α]
-  {M : matrix n n α}
+  {M : matrix m n α}
 
-lemma row_eq_zero_of_ne (hM : M.doubly_stochastic) {i j : n} (h : M i j = 1) :
+lemma row_eq_zero_of_ne (hM : M.doubly_stochastic) {i j} (h : M i j = 1) :
   ∀ j', j ≠ j' → M i j' = 0 :=
 begin
   intros j' hj',
@@ -209,16 +225,17 @@ begin
     apply hM.nonneg }
 end
 
-lemma col_eq_zero_of_ne (hM : M.doubly_stochastic) {i j : n} (h : M i j = 1) :
+lemma col_eq_zero_of_ne (hM : M.doubly_stochastic) {i j} (h : M i j = 1) :
   ∀ i', i ≠ i' → M i' j = 0 :=
 hM.transpose.row_eq_zero_of_ne h
 
 end
 
-variables [ordered_semiring α] {M N : matrix n n α}
+variables {l : Type*} [fintype l] [ordered_semiring α]
+  {M : matrix l m α} {N : matrix m n α}
 
 lemma mul (hM : M.doubly_stochastic) (hN : N.doubly_stochastic) :
-  (M ⬝ N).doubly_stochastic :=
+  (M.mul N).doubly_stochastic :=
 begin
   split,
   { intros i j,
