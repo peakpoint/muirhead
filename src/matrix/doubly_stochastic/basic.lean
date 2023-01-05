@@ -6,7 +6,7 @@ Authors: Tian Chen
 
 import matrix.support
 
-open_locale big_operators matrix classical
+open_locale big_operators matrix
 
 namespace matrix
 
@@ -38,6 +38,18 @@ end,
 λ j, by simp_rw [pequiv.to_matrix, equiv.to_pequiv_apply,
     option.mem_some_iff, ← equiv.eq_symm_apply];
   rw [finset.sum_ite_eq', if_pos]; exact finset.mem_univ _⟩
+
+lemma doubly_stochastic_one [decidable_eq n] [zero_le_one_class α] :
+  (1 : matrix n n α).doubly_stochastic :=
+⟨λ i j,
+begin
+  rw one_apply,
+  split_ifs,
+  exact zero_le_one,
+  exact le_rfl
+end,
+λ i, show ∑ _, ite _ _ _ = _, by rw [finset.sum_ite_eq, if_pos (finset.mem_univ _)],
+λ j, show ∑ _, ite _ _ _ = _, by rw [finset.sum_ite_eq', if_pos (finset.mem_univ _)]⟩
 
 namespace doubly_stochastic
 
@@ -152,7 +164,7 @@ end
 
 /-- An `n` by `n` matrix is doubly stochastic and has exactly `n` non-zero entries
   iff it's a permutation matrix -/
-lemma card_eq_card_support_iff [zero_le_one_class α] :
+lemma card_eq_card_support_iff [decidable_eq m] [decidable_eq n] [zero_le_one_class α] :
   M.doubly_stochastic ∧ M.support.card = fintype.card m ∧ M.support.card = fintype.card n ↔
   ∃ σ : m ≃ n, M = σ.to_pequiv.to_matrix :=
 begin
@@ -209,7 +221,7 @@ calc (finset.univ.card : α)
 
 section
 
-variables [ordered_cancel_add_comm_monoid α] [has_one α]
+variables [ordered_cancel_add_comm_monoid α] [has_one α] [decidable_eq n]
   {M : matrix m n α}
 
 lemma row_eq_zero_of_ne (hM : M.doubly_stochastic) {i j} (h : M i j = 1) :
@@ -225,7 +237,7 @@ begin
     apply hM.nonneg }
 end
 
-lemma col_eq_zero_of_ne (hM : M.doubly_stochastic) {i j} (h : M i j = 1) :
+lemma col_eq_zero_of_ne [decidable_eq m] (hM : M.doubly_stochastic) {i j} (h : M i j = 1) :
   ∀ i', i ≠ i' → M i' j = 0 :=
 hM.transpose.row_eq_zero_of_ne h
 
