@@ -24,7 +24,7 @@ lemma doubly_stochastic_iff (M : matrix m n α) :
     (∀ i j, 0 ≤ M i j) ∧ (∀ i, ∑ j, M i j = 1) ∧ (∀ j, ∑ i, M i j = 1) :=
 ⟨λ h, ⟨h.nonneg, h.row, h.col⟩, λ ⟨h₁, h₂, h₃⟩, ⟨h₁, h₂, h₃⟩⟩
 
-lemma equiv.doubly_stochastic [decidable_eq m] [decidable_eq n] (σ : m ≃ n) (β : Type*)
+lemma _root_.equiv.doubly_stochastic [decidable_eq m] [decidable_eq n] (σ : m ≃ n) (β : Type*)
   [ordered_add_comm_monoid β] [has_one β] [zero_le_one_class β] :
   (σ.to_pequiv.to_matrix : matrix m n β).doubly_stochastic :=
 ⟨λ i j, begin
