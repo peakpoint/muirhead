@@ -10,9 +10,13 @@ Previously, I tried `finset.filter` but now I using `finsupp`.
 * `matrix.doubly_stochastic.mem_convex_hull` is Birkhoff's theorem.
 Every doubly stochastic matrix is in the convex hull of the permutation matrices.
 
+* `majorize.exists_doubly_stochastic` states that if `p` majorizes `q`,
+then there exists doubly stochastic `M` such that `q = M p`.
+
 ## TODO:
 
-* prove some variations (reverse direction)?
+* prove some variations?
+* reverse directions?
 * make `ineq/muirhead.lean`
 
 ## References/Helpful Notes
