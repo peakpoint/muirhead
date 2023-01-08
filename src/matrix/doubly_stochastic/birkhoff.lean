@@ -8,7 +8,7 @@ import matrix.doubly_stochastic.basic
 import analysis.convex.combination
 import combinatorics.hall.finite
 
-open_locale big_operators classical
+open_locale big_operators
 
 open finset matrix
 
@@ -16,7 +16,9 @@ noncomputable theory
 
 namespace matrix.doubly_stochastic
 
-variables {m n α : Type*} [fintype m] [fintype n] [linear_ordered_field α] {M : matrix m n α}
+variables {m n α : Type*} [fintype m] [fintype n]
+  [decidable_eq m] [decidable_eq n]
+  [linear_ordered_field α] {M : matrix m n α}
 
 /-- Inequality used in the application of Hall. -/
 lemma hall (hM : M.doubly_stochastic) (s : finset m) :
@@ -138,6 +140,46 @@ begin
       simp_rw [pi.smul_apply, ← smul_sum, hM', pi.sub_apply, pi.smul_apply, sum_sub_distrib,
         ← smul_sum, hσ'.row, hσ'.col, hM.row, hM.col, smul_eq_mul, mul_one, inv_mul_cancel h1x],
       exact ⟨λ _, rfl, λ _, rfl⟩ } }
+end
+
+/-- **Birkhoff's theorem**, finset version. -/
+theorem mem_convex_hull_finset (hM : M.doubly_stochastic) :
+  M ∈ convex_hull α ((univ.image (pequiv.to_matrix ∘ equiv.to_pequiv) :
+    finset (matrix m n α)) : set (matrix m n α)) :=
+begin
+  rw [finset.coe_image, finset.coe_univ],
+  exact hM.mem_convex_hull
+end
+
+/-- **Birkhoff's theorem**, using a weight function. -/
+theorem mem_convex_hull' (hM : M.doubly_stochastic) :
+  ∃ c : (m ≃ n) → α,
+    (∀ σ, 0 ≤ c σ) ∧
+    ∑ σ, c σ = 1 ∧
+    M = ∑ σ, c σ • σ.to_pequiv.to_matrix :=
+begin
+  have := hM.mem_convex_hull_finset,
+  rw finset.mem_convex_hull at this,
+  rcases this with ⟨c, hc0, hc1, hM'⟩,
+  use (c ∘ pequiv.to_matrix ∘ equiv.to_pequiv),
+  split,
+  { intro σ,
+    apply hc0,
+    apply mem_image_of_mem,
+    exact mem_univ _ },
+  split,
+  show ∑ (σ : m ≃ n), (c (pequiv.to_matrix (equiv.to_pequiv σ))) = 1,
+  rw [← hc1, sum_image],
+  swap,
+  rw [← hM', center_mass_eq_of_sum_1 _ _ hc1, sum_image],
+  refl,
+  all_goals {
+    intros σ₁ _ σ₂ _ h,
+    have := pequiv.to_matrix_injective h,
+    rw pequiv.ext_iff at this,
+    ext i,
+    specialize this i,
+    rwa [equiv.to_pequiv_apply, equiv.to_pequiv_apply, option.some_inj] at this }
 end
 
 end matrix.doubly_stochastic

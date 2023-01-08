@@ -13,11 +13,12 @@ Every doubly stochastic matrix is in the convex hull of the permutation matrices
 * `majorize.exists_doubly_stochastic` states that if `p` majorizes `q`,
 then there exists doubly stochastic `M` such that `q = M p`.
 
+* `majorize.symm_sum_le_symm_sum` is Muirhead's inequality.
+
 ## TODO:
 
 * prove some variations?
 * reverse directions?
-* make `ineq/muirhead.lean`
 
 ## References/Helpful Notes
 
